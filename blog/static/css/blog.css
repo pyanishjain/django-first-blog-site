@@ -19,7 +19,7 @@ h1, h2, h3, h4 {
 }
 
 .date {
-    color: orange;
+    color: red;
 }
 
 .save {
@@ -38,7 +38,7 @@ h1, h2, h3, h4 {
 }
 
 .post {
-    margin-bottom: 70px;
+    margin-bottom: 0px;
     padding: 15px;
 }
 
