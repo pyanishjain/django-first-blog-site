@@ -1,7 +1,7 @@
 from django.shortcuts import render,get_object_or_404,HttpResponse,redirect
 from django.utils import timezone
 from .models import Post
-from .forms import PostForm,SignUpForm
+from .forms import PostForm,SignUpForm,UserLogin
 from django.contrib.auth import authenticate,login
 from django.contrib.auth.decorators import login_required
 
@@ -34,9 +34,10 @@ def post_new(request):
 def post_edit(request, pk):
     post = get_object_or_404(Post, pk=pk)
     if request.method == "POST":
-        form = PostForm(request.POST, instance=post)
+        form = PostForm(request.POST,instance=post)
         if form.is_valid():
             post = form.save(commit=False)
+            print(post)
             post.author = request.user
             post.published_date = timezone.now()
             post.save()
@@ -45,19 +46,41 @@ def post_edit(request, pk):
         form = PostForm(instance=post)
     return render(request, 'blog/post_edit.html', {'form': form})
 
+
+def login(request):
+    if request.method == 'GET':
+        login_form = UserLogin()
+        context = {
+            'form': login_form,
+        }
+        return render(request, 'registration/login.html', context)
+    if request.method == 'POST':
+        login_form = UserLogin(request.POST)
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('/')
+        else:
+            context = {
+                'form': login_form,
+                'message': 'Wrong user and/or password!',
+            }
+            return render(request, 'registration/login.html', context)
+
 def signup(request):
-    if request.user.is_authenticated:
-        return redirect('/')
     if request.method == 'POST':
         form = SignUpForm(request.POST)
         if form.is_valid():
-            form.save()
-            username = form.cleaned_data.get('username')
+            user = form.save()
+            user.refresh_from_db()  # load the profile instance created by the signal
+            user.profile.birth_date = form.cleaned_data.get('birth_date')
+            user.save()
             raw_password = form.cleaned_data.get('password1')
-            user = authenticate(username=username, password=raw_password)
+            user = authenticate(username=user.username, password=raw_password)
             login(request, user)
-            return redirect('/')
+
     else:
         form = SignUpForm()
     return render(request, 'registration/signup.html', {'form': form})
-
